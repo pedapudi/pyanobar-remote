@@ -75,18 +75,20 @@ class PianobarRemoteListener():
             # interacting directly with fifo?
             subprocess.call(COMMANDS[data], stdout=self.fifo) # giant hack
 
-runtime = PRLRuntime()
-runtime.start_pianobar()
+if __name__ == "__main__":
+    runtime = PRLRuntime()
+    runtime.start_pianobar()
 
-listener = PianobarRemoteListener(runtime.fifo, UDP_IP, UDP_PORT)
+    listener = PianobarRemoteListener(runtime.fifo, UDP_IP, UDP_PORT)
 
-runtime.register_listener(listener)
-runtime.start_listeners()
+    runtime.register_listener(listener)
+    runtime.start_listeners()
 
-from time import sleep
-while(True):
-    # TODO: figure out how to parse pianobar event_cmd. 
-    # and display that as output
-    # (line 393 of pianobar/ui.h)
-    sleep(60)
+    # don't judge me. this will be fixed -- i promise
+    from time import sleep
+    while(True): 
+        # TODO: figure out how to parse pianobar event_cmd. 
+        # and display that as output
+        # (line 393 of pianobar/ui.h)
+        sleep(60)
     

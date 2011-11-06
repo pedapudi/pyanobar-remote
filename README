@@ -1,0 +1,7 @@
+Python implementation of remote controls for pianobar. 
+
+To test, 
+Open a terminal
+     $ python remote.py
+Open another terminal
+     $ echo "playpause" | nc -u localhost 64266

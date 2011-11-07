@@ -95,7 +95,11 @@ class PianobarRemoteListener():
     def listen(self):
         self.sock = socket.socket(socket.AF_INET, # IPv4
                                   socket.SOCK_DGRAM) # UDP
-        self.sock.bind((self.udp_ip, self.udp_port))
+        try:
+            self.sock.bind((self.udp_ip, self.udp_port))
+        except socket.error, msg:
+            print "Failed to bind: " + msg
+
         while True:
             data, addr = self.sock.recvfrom(1024) # buffer size of 1024 bytes
             self.runtime.handle(data)

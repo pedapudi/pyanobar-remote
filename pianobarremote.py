@@ -9,7 +9,7 @@ import subprocess # for managing pianobar instance
 # PRLRuntime provides an overarching class that encapsulates the
 # environment for all PianobarRemoteListeners. PRLRuntime takes
 # ownership of the pianobar process.
-class PRLRuntime():
+class PRLRuntime:
     def __init__(self, config=None):
         # convenience method to read pianobar's config file
         def parse_config(config_file):
@@ -26,12 +26,12 @@ class PRLRuntime():
         self.inactive_listeners = []
         self.pool = []
         
-        self.__initialize_commands()
+        self._initialize_commands()
 
         atexit.register(self.terminate)
 
     # TODO: add support for complicated commands like act_stationcreate
-    def __initialize_commands(self):
+    def _initialize_commands(self):
         # small hack that allows assignment in anonymous functions
         def set(dct, k, v):
             dct[k] = v
@@ -86,7 +86,7 @@ class PRLRuntime():
 
 # PianobarRemoteListener is intended to run in its own thread. It accepts UDP
 # packets describing which action to take on pianobar in a blocking fashion.
-class PianobarRemoteListener():
+class PianobarRemoteListener:
     def __init__(self, rt, udp_ip, udp_port):
         self.runtime = rt
         self.udp_ip = udp_ip

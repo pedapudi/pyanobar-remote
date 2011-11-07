@@ -23,7 +23,12 @@
 # (5) create an install.sh that makes fifo and config?
 # (6) embed event_cmd behavior into this script (somehow)
 
-import atexit, multiprocessing, os, socket, subprocess, sys
+import atexit
+import multiprocessing
+import os
+import socket
+import subprocess
+import sys
 
 # set to public ip if provided; else, use localhost
 UDP_IP = sys.argv[1] if sys.argv[1] else "127.0.0.1"

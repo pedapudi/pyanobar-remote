@@ -23,12 +23,18 @@
 # (5) create an install.sh that makes fifo and config?
 # (6) embed event_cmd behavior into this script (somehow)
 
-import atexit, multiprocessing, os, socket, subprocess, sys
+import atexit # for process clean-up
+import multiprocessing # for ...multiprocessing
+import os # for unbuffered writes
+import socket # for udp
+import subprocess # for managing pianobar
+
+from sys import argv # for handling cli arguments
 
 # set to public ip if provided; else, use localhost
-UDP_IP = sys.argv[1] if sys.argv[1] else "127.0.0.1"
+UDP_IP = argv[1] if len(argv) > 1 else "127.0.0.1"
 # use specified port unless missing; then, use arbitrary default
-UDP_PORT = int(sys.argv[2]) if sys.argv[2] else 64266 # PIANO on T9 - 10000
+UDP_PORT = int(argv[2]) if len(argv) > 2 else 64266 # PIANO on T9 - 10000
 
 # PRLRuntime provides an overarching class that encapsulates the
 # environment for all PianobarRemoteListeners. PRLRuntime takes
@@ -42,8 +48,7 @@ class PRLRuntime():
     def start_pianobar(self):
         # note: always initialize pianobar before fifo
         self.pianobar = subprocess.Popen("pianobar", stdout = subprocess.PIPE)
-        self.fifo = open("/home/sunil/.config/pianobar/ctl", "w")
-        #subprocess.call(["echo", "-e", "20\n"], stdout=self.fifo)
+        self.fifo = open("/home/sunil/.config/pianobar/ctl", "w", 0)
 
     # add listeners that can control current pianobar instance
     def register_listener(self, listener):
@@ -67,7 +72,7 @@ class PRLRuntime():
         self.pianobar.kill()
 
     def handle(self, command):
-        subprocess.call(command(), stdout=self.fifo)
+        self.fifo.write(command())
 
 # PianobarRemoteListener is intended to run in its own thread. It accepts UDP
 # packets describing which action to take on pianobar in a blocking fashion.
@@ -97,7 +102,7 @@ def initialize_commands():
     parser.read(["/home/sunil/.config/pianobar/config"])
     
     comm = {}
-    map(lambda kv: set(comm, kv[0],["echo", "-ne", kv[1]]),
+    map(lambda kv: set(comm, kv[0], kv[1]),
                        parser.items("Keybindings"))
     
     global COMMANDS    

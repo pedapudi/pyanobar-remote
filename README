@@ -4,8 +4,7 @@ To test,
 Open a terminal
      $ python remote.py
 Open another terminal
-     $ echo "playpause" | nc -u localhost 64266
+     $ echo "act_songpause" | nc -qu 127.0.0.1 64266
 
 Assumptions: 
-1. Your username and password are stored in your config file
-2. You have at least 20 stations (it's hardcoded in remote.py -- my bad)
+-- Your username, password, and default station are stored in your config file

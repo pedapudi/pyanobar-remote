@@ -22,19 +22,32 @@
 #   (a) make a config file?
 # (5) create an install.sh that makes fifo and config?
 # (6) embed event_cmd behavior into this script (somehow)
+# (7) handle concurrency to fifo by acquiring lock? may be unnecessary
+#     since fifo buffers anyway. could explore listener-side buffering
+#     with locks
 
 import atexit # for process clean-up
 import multiprocessing # for ...multiprocessing
-import os # for unbuffered writes
+import os # for debugging and other utilities
 import socket # for udp
-import subprocess # for managing pianobar
+import subprocess # for managing pianobar instance
 
 from sys import argv # for handling cli arguments
 
 # set to public ip if provided; else, use localhost
 UDP_IP = argv[1] if len(argv) > 1 else "127.0.0.1"
+
 # use specified port unless missing; then, use arbitrary default
 UDP_PORT = int(argv[2]) if len(argv) > 2 else 64266 # PIANO on T9 - 10000
+
+# convenience method to read pianobar's config file
+def parse_config(config_file=os.path.expanduser("~/.config/pianobar/config")):
+    import ConfigParser
+    parser = ConfigParser.SafeConfigParser()
+    parser.read([config_file])
+    return parser
+
+CONFIG = parse_config()
 
 # PRLRuntime provides an overarching class that encapsulates the
 # environment for all PianobarRemoteListeners. PRLRuntime takes
@@ -46,9 +59,22 @@ class PRLRuntime():
         atexit.register(self.terminate)
 
     def start_pianobar(self):
+        # convenience method to parse config file for fifo if one is
+        # specified. otherwise, the default file is used.
+        def fifo_path():
+            if CONFIG.has_option("Misc", "fifo"):
+                return CONFIG.get("Misc", "fifo")
+            return os.path.expanduser("~/.config/pianobar/ctl")
+
+        def get_named_pipe():
+            fp = fifo_path()
+            if not os.path.exists(fp):
+                os.mkfifo(fp)
+            return open(fp , "w", 0) # unbuffered
+                    
         # note: always initialize pianobar before fifo
         self.pianobar = subprocess.Popen("pianobar", stdout = subprocess.PIPE)
-        self.fifo = open("/home/sunil/.config/pianobar/ctl", "w", 0)
+        self.fifo = get_named_pipe()
 
     # add listeners that can control current pianobar instance
     def register_listener(self, listener):
@@ -71,6 +97,7 @@ class PRLRuntime():
         self.fifo.close()
         self.pianobar.kill()
 
+    # TODO: return the event that results from executing the command
     def handle(self, command):
         self.fifo.write(command())
 
@@ -97,18 +124,14 @@ def initialize_commands():
     def set(dct, k, v):
         dct[k] = v
 
-    import ConfigParser
-    parser = ConfigParser.SafeConfigParser()
-    parser.read(["/home/sunil/.config/pianobar/config"])
-    
     comm = {}
     map(lambda kv: set(comm, kv[0], kv[1]),
-                       parser.items("Keybindings"))
+                       CONFIG.items("Keybindings"))
     
     global COMMANDS    
     COMMANDS = comm    
     
-if __name__ == "__main__":
+if __name__ == "__main__":  
     initialize_commands()
     
     runtime = PRLRuntime()

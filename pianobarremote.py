@@ -1,4 +1,5 @@
 DEFAULT_CONFIG = "~/.config/pianobar/config"
+DEFAULT_FIFO = "~/.config/pianobar/ctl"
 
 import atexit # for process clean-up
 import multiprocessing # for ...multiprocessing
@@ -10,7 +11,7 @@ import subprocess # for managing pianobar instance
 # environment for all PianobarRemoteListeners. PRLRuntime takes
 # ownership of the pianobar process.
 class PRLRuntime:
-    def __init__(self, config=None):
+    def __init__(self, config=os.path.expanduser(DEFAULT_CONFIG)):
         # convenience method to read pianobar's config file
         def parse_config(config_file):
             import ConfigParser
@@ -18,11 +19,8 @@ class PRLRuntime:
             parser.read([config_file])
             return parser
         
-        if config:
-            self.config = parse_config(config)
-        else:
-            self.config = parse_config(os.path.expanduser(DEFAULT_CONFIG))
-            
+        self.config = parse_config(config)
+        
         self.inactive_listeners = []
         self.pool = []
         
@@ -43,19 +41,21 @@ class PRLRuntime:
     def start_pianobar(self):
         # convenience method to parse config file for fifo if one is
         # specified. otherwise, the default file is used.
-        def fifo_path():
-            if self.config.has_option("Misc", "fifo"):
-                return self.config.get("Misc", "fifo")
-            return os.path.expanduser("~/.config/pianobar/ctl")
-
         def get_named_pipe():
+            def fifo_path():
+                if self.config.has_option("Misc", "fifo"):
+                    return self.config.get("Misc", "fifo")
+                return os.path.expanduser(DEFAULT_FIFO)
+
             fp = fifo_path()
-            if not os.path.exists(fp):
-                os.mkfifo(fp)
-            return open(fp , "w", 0) # unbuffered
-                    
-        # note: always initialize pianobar before fifo
-        self.pianobar = subprocess.Popen("pianobar", stdout = subprocess.PIPE)
+            #if not os.path.exists(fp):
+            #    os.mkfifo(fp)
+            fifo = open(fp , "w", 0) # unbuffered
+            fifo.flush()
+            return fifo
+        
+        # note: always initialize pianobar before opening fifo
+        self.pianobar = subprocess.Popen("pianobar", stdout=subprocess.PIPE)
         self.fifo = get_named_pipe()
 
     # add listeners that can control current pianobar instance
@@ -74,10 +74,10 @@ class PRLRuntime:
 
     # clean up all running processes and open files as well as kill pianobar
     def terminate(self):
-        for p in self.pool:
-            p.terminate()
         self.fifo.close()
-        self.pianobar.kill()
+        self.pianobar.terminate()
+        map(lambda p: p.terminate(), self.pool)
+                
 
     # TODO: return the event that results from executing the command
     # TODO: what happens when pianobar dies?

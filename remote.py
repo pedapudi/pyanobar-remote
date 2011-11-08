@@ -45,11 +45,15 @@ if __name__ == "__main__":
     runtime.register_listener(listener)
     runtime.start_listeners()
 
+    
     # don't judge me. this will be fixed -- i promise
-    from time import sleep
-    while(True): 
-        # TODO: figure out how to parse pianobar event_cmd. 
-        # and display that as output
-        # (line 393 of /path/to/pianobar/ui.h)
-        sleep(60)
+    
+    # TODO: figure out how to parse pianobar event_cmd. 
+    # and display that as output
+    # (line 393 of /path/to/pianobar/ui.h)
+    from sys import exit
+    while True:
+        inp = raw_input("Enter 'q' to quit: ")
+        if inp == 'q':
+            exit(0)
     
